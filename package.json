@@ -36,6 +36,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@loglib/tracker": "^0.4.3",
 		"@sveltejs/adapter-vercel": "^3.0.1",
 		"@threlte/core": "^5.0.9",
 		"@threlte/extras": "^4.9.3",
