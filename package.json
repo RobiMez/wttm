@@ -1,0 +1,65 @@
+{
+	"name": "pa",
+	"version": "0.0.0-development",
+	"private": true,
+	"scripts": {
+		"dev": "vite dev ",
+		"build": "vite build",
+		"preview": "vite preview",
+		"start": "vite preview",
+		"test": "playwright test",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test:unit": "vitest",
+		"lint": "prettier --plugin-search-dir . --check . && eslint .",
+		"format": "prettier --plugin-search-dir . --write ."
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-auto": "^2.0.0",
+		"@sveltejs/adapter-node": "^1.2.3",
+		"@sveltejs/kit": "^1.20.4",
+		"@types/mongoose": "^5.11.97",
+		"@types/nprogress": "^0.2.0",
+		"@typescript-eslint/eslint-plugin": "^5.45.0",
+		"@typescript-eslint/parser": "^5.45.0",
+		"daisyui": "^3.0.3",
+		"eslint": "^8.28.0",
+		"eslint-config-prettier": "^8.5.0",
+		"eslint-plugin-svelte3": "^4.0.0",
+		"prettier": "^2.8.0",
+		"prettier-plugin-svelte": "^2.10.1",
+		"svelte": "^3.59.2",
+		"tailwindcss": "^3.2.7",
+		"tslib": "^2.4.1",
+		"typescript": "^5.0.0",
+		"vite": "^4.0.0"
+	},
+	"type": "module",
+	"dependencies": {
+		"@threlte/core": "^5.0.9",
+		"@threlte/extras": "^4.9.3",
+		"@threlte/preprocess": "^0.0.2",
+		"@threlte/theatre": "^0.0.2",
+		"@types/three": "^0.149.0",
+		"@zerodevx/svelte-toast": "^0.8.2",
+		"autoprefixer": "^10.4.13",
+		"bcrypt": "^5.0.1",
+		"canvas-sketch-util": "^1.10.0",
+		"d3": "^7.8.5",
+		"dotenv": "^16.0.3",
+		"express-fileupload": "^1.4.0",
+		"mongodb": "^5.1.0",
+		"mongoose": "^7.0.1",
+		"nprogress": "^0.2.0",
+		"svelte-sequential-preprocessor": "^0.0.7",
+		"three": "^0.149.0",
+		"vitest": "^0.32.4"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/RobiMez/PA.git"
+	},
+	"publishConfig": {
+		"access": "restricted"
+	}
+}
