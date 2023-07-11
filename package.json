@@ -36,6 +36,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@sveltejs/adapter-vercel": "^3.0.1",
 		"@threlte/core": "^5.0.9",
 		"@threlte/extras": "^4.9.3",
 		"@threlte/preprocess": "^0.0.2",
