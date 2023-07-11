@@ -77,28 +77,6 @@
 	};
 	let opa = 30;
 
-	// let parseforJSON = (e) => {
-	// 	let toparse = e.explicitOriginalTarget.value;
-	// 	console.log('reparsing', toparse, e);
-	// 	try {
-	// 		parsedTextAreaInput = JSON.parse(toparse);
-	// 		console.log('valid');
-	// 		console.log(parsedTextAreaInput.type == 'personal_chat');
-	// 		if (parsedTextAreaInput.type == 'personal_chat' && parsedTextAreaInput.messages.length) {
-	// 			parsedTextAreaInputValidAsTelegramExport = true;
-	// 			stagedData = parsedTextAreaInput.messages;
-	// 		} else {
-	// 			console.log('invalid');
-	// 			parsedTextAreaInput = 'invalidExport';
-	// 			stagedData = undefined;
-	// 		}
-	// 	} catch (error) {
-	// 		console.log('invalid');
-	// 		parsedTextAreaInput = 'invalid';
-	// 		stagedData = undefined;
-	// 	}
-	// };
-
 	const renderCanvas = (ndata) => {
 		if (!ndata) {
 			datas = data['jsonData'];
@@ -354,31 +332,6 @@
 			</g>
 		{/if}
 
-		<!-- Y-axis -->
-		<!-- {#if yScale}
-			<g>
-				{#each yScale.domain() as tick}
-					<line
-						x1={margins.left}
-						x2={margins.left - 5}
-						y1={yScale(tick) + margins.top}
-						y2={yScale(tick) + margins.top}
-						stroke="#cecece"
-					/>
-					<text
-						x={margins.left - 38}
-						y={yScale(tick) + margins.top + 4}
-						text-anchor="middle"
-						font-size="16"
-						font-weight={900}
-						fill="#cecece"
-					>
-						{tick}
-					</text>
-				{/each}
-			</g>
-		{/if} -->
-
 		{#if xScale && yScale}
 			<!-- Data points -->
 			{#each datas as d, i (keyAccessor(d) || i)}
@@ -420,7 +373,7 @@
 	</div>
 	<Scrolly bind:value={currentStep}>
 		<div class="h-[80vh] p-10 mt-12 flex place-items-center justify-center">
-			<div class=" text-white rounded-xl">
+			<div class=" rounded-xl">
 				<h3 class="text-5xl font-black text-stone-800 py-6">Who talks the most ?</h3>
 				{#if yScale}
 					<h6 class="text-lg font-black text-stone-800">
@@ -504,24 +457,6 @@
 					</button>
 				</div>
 
-				<!-- <textarea
-					class="textarea textarea-xs mt-4 text-stone-800
-					
-						{textAreaInput
-						? parsedTextAreaInputValidAsTelegramExport
-							? 'textarea-success'
-							: 'textarea-error'
-						: 'textarea-primary'}
-					"
-					placeholder="Paste your export json here or browse"
-					name="datum"
-					id="datum"
-					cols="38"
-					rows="1"
-					on:input={(e) => parseforJSON(e)}
-					bind:value={textAreaInput}
-				/> -->
-
 				<div class="flex flex-row justify-center items-center gap-4 p-4">
 					<button
 						on:click={rerollColors}
@@ -536,11 +471,50 @@
 			</div>
 		</div>
 		<div class="h-[100vh] p-10 flex place-items-center justify-center">
-			<div class=" text-white rounded-xl">
+			<div class=" text-stone-800 rounded-xl">
 				<!-- svelte-ignore a11y-click-events-have-key-events -->
-				<h3 on:click={() => (debug = !debug)} class="text-6xl font-black text-stone-800">🤔</h3>
+				<h3 on:click={() => (debug = !debug)} class="text-2xl font-black text-stone-800 mb-8">
+					New site , Who this ?
+				</h3>
 				<hr />
-				<small class="text-stone-800" />
+				<div class="join join-vertical w-full">
+					<div class="collapse collapse-arrow join-item border border-base-300">
+						<input type="radio" name="my-accordion-4" checked="checked" />
+						<div class="collapse-title text-xl font-medium">Who are you & why did you do this ?</div>
+						<div class="collapse-content">
+							Hi im robi , you can find my other works at <a class="link" href="https://robi.work"
+								>robi.work</a
+							>
+							<small class="mb-4 block">as for why : </small>
+							
+							
+							<img src="https://i.imgur.com/z435fsM.png" class="aspect-auto mx-auto" width="200"  alt="">
+						</div>
+					</div>
+					<div class="collapse collapse-arrow join-item border border-base-300">
+						<input type="radio" name="my-accordion-4" />
+						<div class="collapse-title text-xl font-medium">I wanna throw some 💵 at you.</div>
+						<div class="collapse-content">
+							<div class="flex flex-col justify-center items-center">
+								<img
+									src="https://i.imgur.com/iXmEPQb.png"
+									width="300"
+									height="300"
+									alt="telebirr"
+								/>
+								<a href='https://ko-fi.com/K3K74LSLU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+								<p class="text-center my-3">Thanks , yeet it to telebirr / ko-fi.</p>
+							</div>
+						</div>
+					</div>
+					<div class="collapse collapse-arrow join-item border border-base-300">
+						<input type="radio" name="my-accordion-4" />
+						<div class="collapse-title text-xl font-medium">But what about my data and stuff</div>
+						<div class="collapse-content">
+							Idk 🤷‍♂️ use it offline or sth , you can contact me to check out the code.
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	</Scrolly>
