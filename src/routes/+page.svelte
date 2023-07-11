@@ -434,6 +434,9 @@
 					The Size of the circle corresponds to <b>how fast you answered.</b> ( with delays larger
 					than 3 days considered in the same light )
 					<br />
+					<br>
+
+					If you want to load your own data , you can export your telegram dm as a json and select the results.json file.
 				</p>
 				<div class="flex flex-row justify-around items-center align-baseline mt-4">
 					<input
@@ -512,6 +515,17 @@
 						<div class="collapse-title text-xl font-medium">But what about my data and stuff</div>
 						<div class="collapse-content">
 							Idk 🤷‍♂️ use it offline or sth , you can contact me to check out the code.
+						</div>
+					</div>
+					<div class="collapse collapse-arrow join-item border border-base-300">
+						<input type="radio" name="my-accordion-4" />
+						<div class="collapse-title text-xl font-medium">How do i load data ?</div>
+						<div class="collapse-content">
+							<div class="flex flex-row justify-center">
+								
+								<img width="300" src="https://i.imgur.com/mqKl1X8.png"  alt="">
+								<img width="200" src="https://i.imgur.com/9fglCwd.png" class="inline" alt="">
+							</div>
 						</div>
 					</div>
 				</div>
