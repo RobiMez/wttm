@@ -11,13 +11,19 @@ const config = {
 	preprocess: seqPreprocessor([vitePreprocess(), preprocessThrelte()]),
 
 	kit: {
-		adapter: adapter()
+		adapter: adapter(),
+		csrf: {
+			checkOrigin:false
+		}
+	
 	},
+	
 	vite: {
 		optimizeDeps: {
 			include: ['lodash.get', 'lodash.isequal', 'lodash.clonedeep']
 		}
-	}
+	},
+
 };
 
 export default config;

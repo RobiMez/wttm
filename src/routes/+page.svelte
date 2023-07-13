@@ -9,7 +9,7 @@
 	random.setSeed('robi');
 	let debug = false;
 	export let data;
-	console.log('colors', data['colors']);
+	// console.log('colors', data['colors']);
 
 	let datas;
 	let currentStep;
@@ -50,7 +50,7 @@
 		let palette = randomChoice(data.colors);
 		if (datas) {
 			p1n = yScale.domain()[0];
-			console.log('dommy', yScale.domain()[1]);
+			// console.log('dommy', yScale.domain()[1]);
 		}
 
 		p1c = randomChoice(palette);
@@ -185,7 +185,7 @@
 				tally[from].count++;
 				tally[from].sum += timedelta;
 
-				console.log('ree', tally[from]);
+				// console.log('ree', tally[from]);
 				if (meme) {
 					tally[from].memecount += 1;
 				}
@@ -210,7 +210,7 @@
 			if (tally.hasOwnProperty(key)) {
 				const meanTimedelta = Math.floor(tally[key].mean);
 				tally[key].mean = meanTimedelta;
-				console.log(tally[key]);
+				// console.log(tally[key]);
 				const formattedTimedelta = formatTimedelta(meanTimedelta);
 				tally[key].meanText = formattedTimedelta;
 			}
@@ -219,13 +219,13 @@
 			if (tally.hasOwnProperty(key)) {
 				const meanTimedelta = Math.floor(tally[key].mostThirstyReplyTime);
 				tally[key].mostThirstyReplyTime = meanTimedelta;
-				console.log(tally[key]);
+				// console.log(tally[key]);
 				const formattedTimedelta = formatTimedelta(meanTimedelta);
 				tally[key].thirstText = formattedTimedelta;
 			}
 		}
 
-		console.log('tally', tally);
+		// console.log('tally', tally);
 		return tally;
 	};
 
@@ -239,7 +239,7 @@
 		renderCanvas(datas);
 		rerollColors();
 
-		console.log('tally', calculateTallies());
+		// console.log('tally', calculateTallies());
 	};
 
 	let xAccessor = (d) => new Date(d.date).getTime();
@@ -262,22 +262,22 @@
 
 			reader.onload = function (e) {
 				let jsonText = e.target.result;
-				console.log('Fileread return', jsonText);
+				// console.log('Fileread return', jsonText);
 				try {
 					parsedTextAreaInput = JSON.parse(jsonText);
-					console.log('valid');
-					console.log(parsedTextAreaInput.type == 'personal_chat');
+					// console.log('valid');
+					// console.log(parsedTextAreaInput.type == 'personal_chat');
 					if (parsedTextAreaInput.type == 'personal_chat' && parsedTextAreaInput.messages.length) {
 						parsedTextAreaInputValidAsTelegramExport = true;
 						stagedData = parsedTextAreaInput.messages;
 					} else {
-						console.log('invalid');
+						// console.log('invalid');
 						parsedTextAreaInput = 'invalidExport';
 						stagedData = undefined;
 						event.target.value = null;
 					}
 				} catch (error) {
-					console.log('invalid');
+					// console.log('invalid');
 					parsedTextAreaInput = 'invalid';
 					event.target.value = null;
 					stagedData = undefined;
@@ -290,6 +290,36 @@
 
 	onMount(() => {
 		renderCanvas();
+
+		fetch('https://loglib.io/api/v1/visitor', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				apiKey: 'site_kqelualctk',
+				orderBy: {
+					createdAt: 'desc'
+				},
+				where: {},
+				include: {
+					pageview: true,
+					event: true,
+					session: true
+				}
+			})
+		})
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				// Process the response data here
+				console.log(data);
+			})
+			.catch((error) => {
+				// Handle any errors that occur during the request
+				console.error(error);
+			});
 	});
 </script>
 
@@ -374,9 +404,9 @@
 	<Scrolly bind:value={currentStep}>
 		<div class="h-[80vh] p-10 mt-12 flex place-items-center justify-center">
 			<div class=" rounded-xl">
-				<h3 class="text-5xl font-black text-stone-800 py-6">Who talks the most ?</h3>
+				<h3 class="text-5xl font-black text-stone-800 py-6 ">Who talks the most ?</h3>
 				{#if yScale}
-					<h6 class="text-lg font-black text-stone-800">
+					<h6 class="text-lg font-black text-stone-800 ">
 						In the Conversation between <span style="color: {p2c}">{yScale.domain()[1]}</span> &
 						<span style="color: {p1c}">{yScale.domain()[0]}</span> <br /><small class="text-xs"
 							>{datas.length} dots of which
@@ -390,7 +420,7 @@
 						</small>
 						<br />
 					</h6>
-					<p class="text-xs font-normal text-stone-800 my-2">
+					<p class="text-xs font-normal text-stone-800 my-2 hidden">
 						<b>Average response times : </b><br />
 						<span style="color: {p1c}"
 							>{yScale.domain()[0]}: <b>{tally[yScale.domain()[0]]['meanText']}</b>
@@ -399,7 +429,7 @@
 							>{yScale.domain()[1]}: <b>{tally[yScale.domain()[1]]['meanText']}</b></span
 						>
 					</p>
-					<div class="flex flex-row justify-start gap-12 my-2">
+					<div class="flex flex-row justify-start gap-12 my-2 ">
 						<p class="text-xs font-normal text-stone-800">
 							<b>Non text messages ( voice , pics , etc) : </b><br />
 							<span style="color: {p1c}"
@@ -426,7 +456,7 @@
 				{/if}
 
 				<hr />
-				<p class="text-stone-500 text-xs">
+				<p class="text-stone-500 text-xs hidden">
 					Messages are arranged in <b>increasing time</b> & separated by <b>who they are from</b>
 					<br />The lines in between are replies ( bolder = more back and forth happening ) <br />
 					and non text messages are modelled as <b>small purple dots.</b>
@@ -434,9 +464,10 @@
 					The Size of the circle corresponds to <b>how fast you answered.</b> ( with delays larger
 					than 3 days considered in the same light )
 					<br />
-					<br>
+					<br />
 
-					If you want to load your own data , you can export your telegram dm as a json and select the results.json file.
+					If you want to load your own data , you can export your telegram dm as a json and select
+					the results.json file.
 				</p>
 				<div class="flex flex-row justify-around items-center align-baseline mt-4">
 					<input
@@ -473,7 +504,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="h-[100vh] p-10 flex place-items-center justify-center">
+		<div class="h-[100vh] p-10 flex place-items-center justify-center ">
 			<div class=" text-stone-800 rounded-xl">
 				<!-- svelte-ignore a11y-click-events-have-key-events -->
 				<h3 on:click={() => (debug = !debug)} class="text-2xl font-black text-stone-800 mb-8">
@@ -483,15 +514,21 @@
 				<div class="join join-vertical w-full">
 					<div class="collapse collapse-arrow join-item border border-base-300">
 						<input type="radio" name="my-accordion-4" checked="checked" />
-						<div class="collapse-title text-xl font-medium">Who are you & why did you do this ?</div>
+						<div class="collapse-title text-xl font-medium">
+							Who are you & why did you do this ?
+						</div>
 						<div class="collapse-content">
 							Hi im robi , you can find my other works at <a class="link" href="https://robi.work"
 								>robi.work</a
 							>
 							<small class="mb-4 block">as for why : </small>
-							
-							
-							<img src="https://i.imgur.com/z435fsM.png" class="aspect-auto mx-auto" width="200"  alt="">
+
+							<img
+								src="https://i.imgur.com/z435fsM.png"
+								class="aspect-auto mx-auto"
+								width="200"
+								alt=""
+							/>
 						</div>
 					</div>
 					<div class="collapse collapse-arrow join-item border border-base-300">
@@ -505,7 +542,15 @@
 									height="300"
 									alt="telebirr"
 								/>
-								<a href='https://ko-fi.com/K3K74LSLU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+								<a href="https://ko-fi.com/K3K74LSLU" target="_blank"
+									><img
+										height="36"
+										style="border:0px;height:36px;"
+										src="https://storage.ko-fi.com/cdn/kofi2.png?v=3"
+										border="0"
+										alt="Buy Me a Coffee at ko-fi.com"
+									/></a
+								>
 								<p class="text-center my-3">Thanks , yeet it to telebirr / ko-fi.</p>
 							</div>
 						</div>
@@ -522,9 +567,8 @@
 						<div class="collapse-title text-xl font-medium">How do i load data ?</div>
 						<div class="collapse-content">
 							<div class="flex flex-row justify-center">
-								
-								<img width="300" src="https://i.imgur.com/mqKl1X8.png"  alt="">
-								<img width="200" src="https://i.imgur.com/9fglCwd.png" class="inline" alt="">
+								<img width="300" src="https://i.imgur.com/mqKl1X8.png" alt="" />
+								<img width="200" src="https://i.imgur.com/9fglCwd.png" class="inline" alt="" />
 							</div>
 						</div>
 					</div>
