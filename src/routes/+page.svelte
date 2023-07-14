@@ -420,7 +420,7 @@
 						</small>
 						<br />
 					</h6>
-					<p class="text-xs font-normal text-stone-800 my-2 hidden">
+					<p class="text-xs font-normal text-stone-800 my-2">
 						<b>Average response times : </b><br />
 						<span style="color: {p1c}"
 							>{yScale.domain()[0]}: <b>{tally[yScale.domain()[0]]['meanText']}</b>
