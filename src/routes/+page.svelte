@@ -456,7 +456,7 @@
 				{/if}
 
 				<hr />
-				<p class="text-stone-500 text-xs hidden">
+				<p class="text-stone-500 text-xs">
 					Messages are arranged in <b>increasing time</b> & separated by <b>who they are from</b>
 					<br />The lines in between are replies ( bolder = more back and forth happening ) <br />
 					and non text messages are modelled as <b>small purple dots.</b>
