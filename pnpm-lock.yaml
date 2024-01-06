@@ -11,6 +11,9 @@ dependencies:
   '@sveltejs/adapter-vercel':
     specifier: ^4.0.4
     version: 4.0.4(@sveltejs/kit@2.0.6)
+  '@sveltejs/vite-plugin-svelte':
+    specifier: ^3.0.1
+    version: 3.0.1(svelte@4.2.8)(vite@5.0.11)
   '@threlte/core':
     specifier: ^7.0.12
     version: 7.0.12(svelte@4.2.8)(three@0.160.0)
@@ -97,9 +100,6 @@ devDependencies:
   eslint-config-prettier:
     specifier: ^9.1.0
     version: 9.1.0(eslint@8.56.0)
-  eslint-plugin-svelte3:
-    specifier: ^4.0.0
-    version: 4.0.0(eslint@8.56.0)(svelte@4.2.8)
   prettier:
     specifier: ^3.1.1
     version: 3.1.1
@@ -1935,16 +1935,6 @@ packages:
       eslint: '>=7.0.0'
     dependencies:
       eslint: 8.56.0
-    dev: true
-
-  /eslint-plugin-svelte3@4.0.0(eslint@8.56.0)(svelte@4.2.8):
-    resolution: {integrity: sha512-OIx9lgaNzD02+MDFNLw0GEUbuovNcglg+wnd/UY0fbZmlQSz7GlQiQ1f+yX0XvC07XPcDOnFcichqI3xCwp71g==}
-    peerDependencies:
-      eslint: '>=8.0.0'
-      svelte: ^3.2.0
-    dependencies:
-      eslint: 8.56.0
-      svelte: 4.2.8
     dev: true
 
   /eslint-scope@7.2.2:

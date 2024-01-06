@@ -1,7 +1,7 @@
 import adapter from '@sveltejs/adapter-vercel';
 import seqPreprocessor from 'svelte-sequential-preprocessor';
 
-import { vitePreprocess } from '@sveltejs/kit/vite';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { preprocessThrelte } from '@threlte/preprocess';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -13,11 +13,11 @@ const config = {
 	kit: {
 		adapter: adapter(),
 		csrf: {
-			checkOrigin:false
+			checkOrigin: false
 		}
-	
+
 	},
-	
+
 	vite: {
 		optimizeDeps: {
 			include: ['lodash.get', 'lodash.isequal', 'lodash.clonedeep']
