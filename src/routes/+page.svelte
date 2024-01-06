@@ -13,7 +13,7 @@
 	import Color from 'canvas-sketch-util/color';
 
 	import Crown from 'phosphor-svelte/lib/Crown';
-	import DiceSix from 'phosphor-svelte/lib/DiceSix';
+	import DiceFive from 'phosphor-svelte/lib/DiceFive';
 
 	random.setSeed('robi');
 	let debug = false;
@@ -421,7 +421,7 @@
 							<span class="kbd kbd-md relative" style="color: {p2c}">
 								{#if !wttm}
 									<span
-										transition:slide={{ delay: 300, duration: 700 }}
+										transition:slide|global={{ delay: 300, duration: 700 }}
 										class="absolute -top-3 backdrop-blur-sm p-1 rounded-full"
 									>
 										<Crown weight="duotone" size={16} />
@@ -433,7 +433,7 @@
 							<span class="kbd kbd-md relative" style="color: {p1c}">
 								{#if wttm}
 									<span
-										transition:slide={{ delay: 300, duration: 700 }}
+										transition:slide|global={{ delay: 300, duration: 700 }}
 										class="absolute -top-3 backdrop-blur-sm p-1 rounded-full"
 									>
 										<Crown weight="duotone" size={16} />
@@ -579,7 +579,7 @@
 				"
 							>
 								Randomize Colors
-								<DiceSix />
+								<DiceFive size="24" />
 							</button>
 							<span class=" p-4 text-xs text-stone-800">Opacity</span>
 							<input bind:value={opa} type="range" min="0" max="100" class="range range-xs" />
