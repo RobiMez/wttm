@@ -1,36 +1,34 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	export let digits: string;
-	export let color: string ;
+	export let color: string;
 	let useDigits = '0000';
+	let chunkedData: string[];
 
 	const splitIntoChunks = (str: string, size: number): string[] => {
 		let result: string[] = [];
 		for (let i = 0; i < str.length; i += size) {
-			result.push(str.substr(i, size));
+			result.push(str.slice(i, i + size));
 		}
 		return result;
 	};
 
-	let chunkedData: string[];
+	const processDigits = (digits: string = '') => {
+		if (digits) useDigits = digits;
+		return useDigits.length % 2 === 0
+			? splitIntoChunks(useDigits, 2)
+			: [useDigits[0], ...splitIntoChunks(useDigits.substring(1), 2)];
+	};
 
-	$: if (digits) {
-		useDigits = digits;
-		chunkedData =
-			useDigits.length % 2 === 0
-				? splitIntoChunks(useDigits, 2)
-				: [useDigits[0], ...splitIntoChunks(useDigits.substring(1), 2)];
+	chunkedData = processDigits();
+
+	$: if (useDigits !== digits && useDigits !== '0000') {
+		chunkedData = processDigits(digits);
 	}
 
 	onMount(() => {
 		setTimeout(() => {
-			console.log('Setting digits', digits, useDigits);
-			useDigits = digits;
-
-			chunkedData =
-				useDigits.length % 2 === 0
-					? splitIntoChunks(useDigits, 2)
-					: [useDigits[0], ...splitIntoChunks(useDigits.substring(1), 2)];
+			chunkedData = processDigits(digits);
 		}, 1000);
 	});
 </script>
