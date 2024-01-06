@@ -1,21 +1,29 @@
-<script>
+<script lang="ts">
 	//@ts-nocheck
 	import * as d3 from 'd3';
+
 	import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
+
 	import Scrolly from '$lib/components/Scrolly.svelte';
+	import Title from '$lib/components/Title.svelte';
+	import Countdown from '$lib/components/Countdown.svelte';
+
 	import random from 'canvas-sketch-util/random';
 	import Color from 'canvas-sketch-util/color';
+
+	import Crown from 'phosphor-svelte/lib/Crown';
+	import DiceSix from 'phosphor-svelte/lib/DiceSix';
 
 	random.setSeed('robi');
 	let debug = false;
 	export let data;
-	// console.log('colors', data['colors']);
 
 	let datas;
 	let currentStep;
 	let xScale, yScale, rScale, xTicks, yTicks;
 	let lineGenerator, formatTick, textAreaInput, parsedTextAreaInput;
-	let parsedTextAreaInputValidAsTelegramExport = false;
+	let ptaivAsTelegramExport = false;
 	let p1n = 'Mom';
 	let p1c, p2c;
 	let tally;
@@ -46,18 +54,19 @@
 		const randomIndex = Math.floor(Math.random() * array.length);
 		return array[randomIndex];
 	}
+
 	const rerollColors = () => {
 		let palette = randomChoice(data.colors);
 		if (datas) {
 			p1n = yScale.domain()[0];
-			// console.log('dommy', yScale.domain()[1]);
 		}
 
 		p1c = randomChoice(palette);
 		p2c = randomChoice(palette);
 
 		let tries = 0;
-		const maxTries = 10; // Combination formula for the win
+		const maxTries = 10;
+		// Combination formula for the win
 
 		while (
 			Color.contrastRatio(p1c, p2c) < 4.5 ||
@@ -81,10 +90,13 @@
 		if (!ndata) {
 			datas = data['jsonData'];
 		}
+
 		// Preprocess //
+
 		// Parse the date strings into JavaScript Date objects
 		datas = datas.filter((obj) => 'from' in obj);
-		datas.forEach(function (d) {
+
+		datas.forEach((d) => {
 			d.date = new Date(d.date);
 		});
 
@@ -113,6 +125,7 @@
 		});
 
 		// SCALES //
+
 		// Create a logarithmic scale that ranges from the left margin
 		// to the client width - margin right that
 		// depends on the date value of the datapoints
@@ -121,12 +134,14 @@
 			.domain(d3.extent(datas, (d) => new Date(d.date).getTime()))
 			.nice()
 			.range([margins.left, clw - margins.right]);
+
 		// Create a bandscale ( category ) that takes all the .froms and ranges from
 		// the client height - margin bottom to the margin top
 		yScale = d3
 			.scaleBand()
 			.domain(datas.map((d) => d.from).reverse())
 			.range([clh - margins.bottom, margins.top]);
+
 		// Create a radius scale that ranges from 10 to 1 that
 		// depends on the highest and lowest time deltas
 		rScale = d3
@@ -171,29 +186,34 @@
 		const minutes = Math.floor((td % 3600) / 60);
 		const seconds = Math.floor(td % 60);
 
-		return `${hours} hours, ${minutes} minutes, ${seconds} seconds`;
+		return `${hours} hr, ${minutes} m, ${seconds} s`;
 	};
+	let wttm: Boolean;
 
 	let calculateTallies = () => {
 		tally = {};
 
 		for (let i = 0; i < datas.length; i++) {
 			const from = datas[i].from;
-			const meme = datas[i].text == '';
 			const timedelta = parseInt(datas[i].timeDelta);
+			const meme = datas[i].text == '';
+			const isSticker = !!datas[i].sticker_emoji;
+
 			if (tally.hasOwnProperty(from)) {
 				tally[from].count++;
 				tally[from].sum += timedelta;
-
-				// console.log('ree', tally[from]);
 				if (meme) {
 					tally[from].memecount += 1;
+				}
+				if (isSticker) {
+					tally[from].stickercount += 1;
 				}
 			} else {
 				tally[from] = {
 					count: 1,
 					sum: timedelta,
-					memecount: 1
+					memecount: 1,
+					stickercount: 1
 				};
 			}
 		}
@@ -210,7 +230,6 @@
 			if (tally.hasOwnProperty(key)) {
 				const meanTimedelta = Math.floor(tally[key].mean);
 				tally[key].mean = meanTimedelta;
-				// console.log(tally[key]);
 				const formattedTimedelta = formatTimedelta(meanTimedelta);
 				tally[key].meanText = formattedTimedelta;
 			}
@@ -219,13 +238,11 @@
 			if (tally.hasOwnProperty(key)) {
 				const meanTimedelta = Math.floor(tally[key].mostThirstyReplyTime);
 				tally[key].mostThirstyReplyTime = meanTimedelta;
-				// console.log(tally[key]);
 				const formattedTimedelta = formatTimedelta(meanTimedelta);
 				tally[key].thirstText = formattedTimedelta;
 			}
 		}
-
-		// console.log('tally', tally);
+		wttm = tally[yScale.domain()[0]]['count'] > tally[yScale.domain()[1]]['count'];
 		return tally;
 	};
 
@@ -234,12 +251,10 @@
 		stagedData = undefined;
 		textAreaInput = '';
 		parsedTextAreaInput = null;
-		parsedTextAreaInputValidAsTelegramExport = false;
+		ptaivAsTelegramExport = false;
 		rerollColors();
 		renderCanvas(datas);
 		rerollColors();
-
-		// console.log('tally', calculateTallies());
 	};
 
 	let xAccessor = (d) => new Date(d.date).getTime();
@@ -251,7 +266,7 @@
 		yScale(yAccessor(d)) + yScale.bandwidth() / 2 - random.value() * 200 + 100;
 	let rAccessorScaled = (d) => rScale(rAccessor(d));
 
-	let keyAccessor = (d, i) => i;
+	let keyAccessor = (_, i) => i;
 	let stagedData;
 
 	const handleFileChange = (event) => {
@@ -262,22 +277,17 @@
 
 			reader.onload = function (e) {
 				let jsonText = e.target.result;
-				// console.log('Fileread return', jsonText);
 				try {
 					parsedTextAreaInput = JSON.parse(jsonText);
-					// console.log('valid');
-					// console.log(parsedTextAreaInput.type == 'personal_chat');
 					if (parsedTextAreaInput.type == 'personal_chat' && parsedTextAreaInput.messages.length) {
-						parsedTextAreaInputValidAsTelegramExport = true;
+						ptaivAsTelegramExport = true;
 						stagedData = parsedTextAreaInput.messages;
 					} else {
-						// console.log('invalid');
 						parsedTextAreaInput = 'invalidExport';
 						stagedData = undefined;
 						event.target.value = null;
 					}
 				} catch (error) {
-					// console.log('invalid');
 					parsedTextAreaInput = 'invalid';
 					event.target.value = null;
 					stagedData = undefined;
@@ -294,7 +304,7 @@
 		fetch('https://loglib.io/api/v1/visitor', {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json',
+				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
 				apiKey: 'site_kqelualctk',
@@ -396,115 +406,189 @@
 		<small class="text-xs">Current Story Step : {currentStep ?? 'loading'}</small>
 		<small class="text-xs">Dataset size : {datas ? datas.length : 'loading'}</small>
 		<small class="text-xs">textarea : {textAreaInput ? parsedTextAreaInput.length : 'empty'}</small>
-		<small class="text-xs"
-			>parsedTextAreaInputValidAsTelegramExport : {parsedTextAreaInputValidAsTelegramExport}</small
+		<small class="text-xs">parsedTextAreaInputValidAsTelegramExport : {ptaivAsTelegramExport}</small
 		>
 		<small class="text-xs">Staged Data : {stagedData ? stagedData.length : 'empty'}</small>
 	</div>
 	<Scrolly bind:value={currentStep}>
-		<div class="h-[80vh] p-10 mt-12 flex place-items-center justify-center">
-			<div class=" rounded-xl">
-				<h3 class="text-5xl font-black text-stone-800 py-6 ">Who talks the most ?</h3>
+		<div class="h-[80vh] p-10 mt-24 flex place-items-center justify-center">
+			<div class="rounded-md">
+				<Title />
 				{#if yScale}
-					<h6 class="text-lg font-black text-stone-800 ">
-						In the Conversation between <span style="color: {p2c}">{yScale.domain()[1]}</span> &
-						<span style="color: {p1c}">{yScale.domain()[0]}</span> <br /><small class="text-xs"
-							>{datas.length} dots of which
-							<span style="color: {p1c}"
-								>{tally[yScale.domain()[0]]['count']} sent by {yScale.domain()[0]}</span
-							>
+					<div class="text-md font-semibold text-stone-500 flex flex-col">
+						<div class="flex flex-row gap-2 items-baseline justify-start">
+							<span> Between </span>
+							<span class="kbd kbd-md relative" style="color: {p2c}">
+								{#if !wttm}
+									<span
+										transition:slide={{ delay: 300, duration: 700 }}
+										class="absolute -top-3 backdrop-blur-sm p-1 rounded-full"
+									>
+										<Crown weight="duotone" size={16} />
+									</span>
+								{/if}
+								{yScale.domain()[1]}
+							</span>
+							&
+							<span class="kbd kbd-md relative" style="color: {p1c}">
+								{#if wttm}
+									<span
+										transition:slide={{ delay: 300, duration: 700 }}
+										class="absolute -top-3 backdrop-blur-sm p-1 rounded-full"
+									>
+										<Crown weight="duotone" size={16} />
+									</span>
+								{/if}
+								{yScale.domain()[0]}
+							</span>
+						</div>
+
+						<small class="text-xs py-2">
+							We have
+							<Countdown digits={`${datas.length}`} />
+							total messages of which <br />
+							<span style="color: {p1c}">
+								<Countdown digits={`${tally[yScale.domain()[0]]['count']}`} color={p1c} />
+								were sent by {yScale.domain()[0]}
+							</span>
 							and
-							<span style="color: {p2c}"
-								>{tally[yScale.domain()[1]]['count']} sent by {yScale.domain()[1]}</span
-							>
+							<span style="color: {p2c}">
+								<Countdown digits={`${tally[yScale.domain()[1]]['count']}`} color={p2c} />
+								were sent by {yScale.domain()[1]}
+							</span>
 						</small>
-						<br />
-					</h6>
-					<p class="text-xs font-normal text-stone-800 my-2">
-						<b>Average response times : </b><br />
-						<span style="color: {p1c}"
-							>{yScale.domain()[0]}: <b>{tally[yScale.domain()[0]]['meanText']}</b>
-						</span><br />
-						<span style="color: {p2c}"
-							>{yScale.domain()[1]}: <b>{tally[yScale.domain()[1]]['meanText']}</b></span
-						>
-					</p>
-					<div class="flex flex-row justify-start gap-12 my-2 ">
+					</div>
+					<div class="flex flex-col gap-1">
 						<p class="text-xs font-normal text-stone-800">
-							<b>Non text messages ( voice , pics , etc) : </b><br />
-							<span style="color: {p1c}"
-								>{yScale.domain()[0]} : <b>{tally[yScale.domain()[0]]['memecount']}</b>
-							</span><br />
-							<span style="color: {p2c}"
-								>{yScale.domain()[1]}: <b>{tally[yScale.domain()[1]]['memecount']}</b></span
-							>
+							<b class="text-stone-600 pb-1">Average response time </b>
+							<span class="flex flex-row gap-2">
+								<span style="color: {p1c}">
+									{yScale.domain()[0]}: <b>{tally[yScale.domain()[0]]['meanText']}</b>
+								</span>
+								<span style="color: {p2c}">
+									{yScale.domain()[1]}: <b>{tally[yScale.domain()[1]]['meanText']}</b>
+								</span>
+							</span>
 						</p>
 						<p class="text-xs font-normal text-stone-800">
-							<b>Text messages: </b><br />
-							<span style="color: {p1c}"
-								>{yScale.domain()[0]} :
-								<b>{tally[yScale.domain()[0]]['count'] - tally[yScale.domain()[0]]['memecount']}</b
-								></span
-							> <br />
-							<span style="color: {p2c}"
-								>{yScale.domain()[1]}:
-								<b>{tally[yScale.domain()[1]]['count'] - tally[yScale.domain()[1]]['memecount']}</b
-								></span
-							>
+							<b class="text-stone-600 pb-1"> Voice messages , Pictures , etc : </b>
+							<span class="flex flex-row gap-2">
+								<span style="color: {p1c}">
+									{yScale.domain()[0]} :
+									<b>
+										{tally[yScale.domain()[0]]['memecount']}
+									</b>
+								</span>
+								<span style="color: {p2c}">
+									{yScale.domain()[1]}:
+									<b>
+										{tally[yScale.domain()[1]]['memecount']}
+									</b>
+								</span>
+							</span>
+						</p>
+						<p class="text-xs font-normal text-stone-800">
+							<b class="text-stone-600 pb-1"> Stickers </b>
+							<span class="flex flex-row gap-2">
+								<span style="color: {p1c}">
+									{yScale.domain()[0]} :
+									<b>
+										{tally[yScale.domain()[0]]['stickercount']}
+									</b>
+								</span>
+								<span style="color: {p2c}">
+									{yScale.domain()[1]}:
+									<b>
+										{tally[yScale.domain()[1]]['stickercount']}
+									</b>
+								</span>
+							</span>
+						</p>
+						<p class="text-xs font-normal text-stone-800">
+							<b class="text-stone-600 pb-1">Text messages: </b>
+							<span class="flex flex-row gap-2">
+								<span style="color: {p1c}">
+									{yScale.domain()[0]} :
+									<b>
+										{tally[yScale.domain()[0]]['count'] - tally[yScale.domain()[0]]['memecount']}
+									</b>
+								</span>
+								<span style="color: {p2c}">
+									{yScale.domain()[1]}:
+									<b>
+										{tally[yScale.domain()[1]]['count'] - tally[yScale.domain()[1]]['memecount']}
+									</b>
+								</span>
+							</span>
 						</p>
 					</div>
 				{/if}
 
-				<hr />
-				<p class="text-stone-500 text-xs">
-					Messages are arranged in <b>increasing time</b> & separated by <b>who they are from</b>
-					<br />The lines in between are replies ( bolder = more back and forth happening ) <br />
-					and non text messages are modelled as <b>small purple dots.</b>
-					<br />
-					The Size of the circle corresponds to <b>how fast you answered.</b> ( with delays larger
-					than 3 days considered in the same light )
-					<br />
-					<br />
-
-					If you want to load your own data , you can export your telegram dm as a json and select
-					the results.json file.
-				</p>
-				<div class="flex flex-row justify-around items-center align-baseline mt-4">
-					<input
-						type="file"
-						accept=".json"
-						id="recipients_file"
-						on:change={handleFileChange}
-						style="input"
-						class="text-stone-800 file-input file-input-sm rounded-md {stagedData
-							? 'file-input-success'
-							: ''} file-input-bordered"
-					/>
-					<button
-						on:click={loadStagedData}
-						class="btn btn-sm text-sm
-			{stagedData == undefined ? 'btn-disabled btn-outline' : 'btn-success'}
-			{parsedTextAreaInputValidAsTelegramExport ? 'btn-success' : 'btn-disabled btn-outline'}
-			"
+				<h5 class="text-stone-400 pt-5">How to read the graph</h5>
+				<p class="text-stone-500 text-xs font-light flex flex-col">
+					<span>
+						The Graph on the left is a Scatter Plot of your messages ( Dots ) , going from leftmost
+						(Past) to rightmost (Present)
+					</span>
+					<span>
+						Each of your messages are separated by color, with lines in between each dot
+						representing replies to that message ( The bolder the line , The more back and forth
+						happening )</span
 					>
-						Load {stagedData ? stagedData.length + ' items' : 'Data'}
-					</button>
-				</div>
+					<span>
+						and non text messages are modelled as <b>small purple dots.</b>
+					</span>
+					<span
+						>The Size of the circle corresponds to <b>speed of reply.</b> ( with delays larger than 3
+						days considered in the same light )
+					</span>
+					<span class="bg-base-300 p-3 rounded-md mt-2">
+						<span class="font-semibold block"> Want to load your own data ? </span>
+						Export any telegram direct message as a json and select the results.json file.
 
-				<div class="flex flex-row justify-center items-center gap-4 p-4">
-					<button
-						on:click={rerollColors}
-						class="btn btn-sm btn-outline text-sm '}
+						<div class="flex flex-row justify-around items-center align-baseline mt-2 gap-2">
+							<input
+								type="file"
+								accept=".json"
+								id="recipients_file"
+								on:change={handleFileChange}
+								style="input"
+								class="text-stone-800 bg-stone-200 file-input file-input-sm rounded-md input-primary {stagedData
+									? 'file-input-success'
+									: ''} file-input-bordered"
+							/>
+							<button
+								on:click={loadStagedData}
+								class="
+								btn btn-sm text-sm
+							{stagedData == undefined ? 'btn-disabled btn-outline' : 'btn-success'}
+							{ptaivAsTelegramExport ? 'btn-success' : 'btn-disabled btn-outline'}
+							"
+							>
+								Load {stagedData ? stagedData.length + ' items' : 'Data'}
+							</button>
+						</div>
+					</span>
+					<span class="bg-base-300 p-3 rounded-md mt-2">
+						<span class="font-semibold block"> Customize the chart </span>
+
+						<div class="flex flex-row justify-center items-center gap-4 p-4">
+							<button
+								on:click={rerollColors}
+								class="btn btn-sm btn-outline text-sm '}
 				"
-					>
-						<i class="fa-solid fa-brush" />
-					</button>
-					<span class=" p-4 text-xs text-stone-800">Opacity</span>
-					<input bind:value={opa} type="range" min="0" max="100" class="range range-xs" />
-				</div>
+							>
+								Randomize Colors
+								<DiceSix />
+							</button>
+							<span class=" p-4 text-xs text-stone-800">Opacity</span>
+							<input bind:value={opa} type="range" min="0" max="100" class="range range-xs" />
+						</div>
+					</span>
+				</p>
 			</div>
 		</div>
-		<div class="h-[100vh] p-10 flex place-items-center justify-center ">
+		<div class="h-[100vh] p-10 flex place-items-center justify-center mt-24">
 			<div class=" text-stone-800 rounded-xl">
 				<!-- svelte-ignore a11y-click-events-have-key-events -->
 				<h3 on:click={() => (debug = !debug)} class="text-2xl font-black text-stone-800 mb-8">

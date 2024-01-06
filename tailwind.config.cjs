@@ -30,7 +30,7 @@ module.exports = {
 	},
 	theme: {
 		fontFamily: {
-			sans: ['Instrument Sans', 'sans-serif']
+			sans: ['Lexend', 'sans-serif']
 		},
 		extend: {
 			colors: {
