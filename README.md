@@ -1,14 +1,9 @@
-todo 
-Clustering
-loading indicator
-snakey lines ? 
+### Todo 
 
-sidebar direction change 
-fullscreen me option
-
-hmm i should add chunked rendering
-like render 1000 points at a time
-
-how many times they ghosted you
-
-average response times , cus i want to see the world burn
+- Clustering X datapoints to one if close enough 
+- loading indicator
+- Snakey lines instead of all straight 
+- Customize sidebar location 
+- fullscreen chart option
+- Chunked rendering , update n points at a time
+- Ghosted count
