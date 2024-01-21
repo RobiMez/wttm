@@ -1,5 +1,5 @@
 <script lang="ts">
-	//@ts-nocheck
+	// @ts-nocheck
 	import * as d3 from 'd3';
 
 	import { onMount } from 'svelte';
@@ -427,12 +427,6 @@
 		<div class="sticky top-0 right-0 text-right px-8 py-4 {debug ? 'flex' : 'hidden'} flex-col">
 			<small class="text-xs">Current Story Step : {currentStep ?? 'loading'}</small>
 			<small class="text-xs">Dataset size : {datas ? datas.length : 'loading'}</small>
-			<small class="text-xs"
-				>textarea : {textAreaInput ? parsedTextAreaInput.length : 'empty'}</small
-			>
-			<small class="text-xs"
-				>parsedTextAreaInputValidAsTelegramExport : {ptaivAsTelegramExport}</small
-			>
 			<small class="text-xs">Staged Data : {stagedData ? stagedData.length : 'empty'}</small>
 		</div>
 		<Scrolly bind:value={currentStep}>

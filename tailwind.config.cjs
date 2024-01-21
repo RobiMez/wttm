@@ -3,6 +3,7 @@ module.exports = {
 	content: ['./src/**/*.{html,js,svelte,ts}'],
 
 	daisyui: {
+		logs: false,
 		themes: [
 			{
 				mytheme: {
@@ -32,12 +33,6 @@ module.exports = {
 		fontFamily: {
 			sans: ['Lexend', 'sans-serif']
 		},
-		extend: {
-			colors: {
-				brand: '#DDC4FF',
-				brands: '#667085'
-			}
-		}
 	},
 	plugins: [require('daisyui')]
 };
