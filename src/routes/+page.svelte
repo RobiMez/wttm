@@ -423,7 +423,7 @@
 		</svg>
 	</div>
 
-	<div class="flex flex-col justify-end -m-[100vh] ml-[60%] w-[40%] h-full bg-stone-100">
+	<div class="justify-end -m-[100vh] ml-[60%] w-[40%] h-full bg-stone-100 flex flex-col">
 		<div class="sticky top-0 right-0 text-right px-8 py-4 {debug ? 'flex' : 'hidden'} flex-col">
 			<small class="text-xs">Current Story Step : {currentStep ?? 'loading'}</small>
 			<small class="text-xs">Dataset size : {datas ? datas.length : 'loading'}</small>

@@ -1,6 +1,6 @@
 {
-	"name": "pa",
-	"version": "0.0.0-development",
+	"name": "wttm",
+	"version": "1.0.0-ui",
 	"private": true,
 	"scripts": {
 		"dev": "vite dev ",
@@ -61,9 +61,6 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/RobiMez/PA.git"
-	},
-	"publishConfig": {
-		"access": "restricted"
+		"url": "https://github.com/RobiMez/wttm.git"
 	}
 }
