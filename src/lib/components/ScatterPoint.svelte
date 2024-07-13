@@ -1,15 +1,18 @@
-<script>
-	//@ts-nocheck
-	export let data = [];
+<script lang="ts">
+	import { onMount } from 'svelte';
+
+	export let data: any[] = [];
 	export let keyAccessor = () => {};
 	export let xAccessor = () => {};
 	export let rAccessor = () => {};
 	export let yAccessor = () => {};
 
-	const findReplyDataPoint = (replyToMessageId) => {
+	const findReplyDataPoint = (replyToMessageId: string) => {
 		let de = data.find((d) => d.id === replyToMessageId) ?? [];
 		return de;
 	};
+
+
 </script>
 
 {#each data as d, i (keyAccessor(d) || i)}
@@ -23,7 +26,9 @@
 	{#if d.reply_to_message_id}
 		{#each [findReplyDataPoint(d.reply_to_message_id)] as replyData}
 			<path
-				d={`M ${xAccessor(d, i)},${yAccessor(d, i)} L ${xAccessor(replyData)},${yAccessor(replyData)}`}
+				d={`M ${xAccessor(d, i)},${yAccessor(d, i)} L ${xAccessor(replyData)},${yAccessor(
+					replyData
+				)}`}
 				fill="none"
 				opacity={0.07}
 				stroke-linecap="round"

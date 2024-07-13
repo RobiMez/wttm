@@ -1,9 +1,8 @@
 <script lang="ts">
-	// @ts-nocheck
 	import * as d3 from 'd3';
 
 	import { onMount } from 'svelte';
-	import { slide } from 'svelte/transition';
+	import { fade, scale, slide } from 'svelte/transition';
 
 	import Scrolly from '$lib/components/Scrolly.svelte';
 	import Title from '$lib/components/Title.svelte';
@@ -17,27 +16,48 @@
 	import ColorRandomizer from '$lib/components/RightSideControls/ColorRandomizer.svelte';
 
 	import { debounce } from 'lodash-es';
+	import prettyMilliseconds from 'pretty-ms';
 	import NoMobileTabPage from '$lib/components/NoMobileTabPage.svelte';
 
+	import { formatTimedelta } from '$lib/utils/time';
+	import FileLoader from '$lib/components/FileLoader.svelte';
+	import { chunkArray } from '$lib/utils.js';
+	import DataPoint from './DataPoint.svelte';
+
 	random.setSeed('robi');
+
 	let debug = false;
 	export let data;
 
-	let datas;
-	let currentStep;
-	let xScale, yScale, rScale, xTicks, yTicks;
-	let lineGenerator, formatTick, textAreaInput, parsedTextAreaInput;
-	let ptaivAsTelegramExport = false;
+	let ghostDuration = 100000000; // ms = 1 day
+
+	let datas: any;
+	let stagedData: Array<any>;
+
+	let currentStep: number;
+
+	let xScale: any, yScale: any, rScale: any;
+	let xTicks, yTicks;
+
+	let lineGenerator, formatTick;
 	let p1n = 'Mom';
-	let p1c, p2c;
-	let tally;
+
+	let p1c: string;
+	let p2c: string;
+
+	let tally: any;
+
+	let winH: number;
+	let winW: number;
+	let palette: string[];
 
 	if (datas) {
 		p1n = datas[0].from;
 	}
 
-	let clw = 1080;
-	let clh = 1080;
+	let clw: number = 1080;
+	let clh: number = 1080;
+	let displayedData: any[] = [];
 
 	let isTabletSizeOrSmaller = false;
 	$: isTabletSizeOrSmaller = winW < 1225 ? true : false;
@@ -51,17 +71,18 @@
 		bottom: 30,
 		left: 90
 	};
+	let opa = 30;
 
-	const findReplyDataPoint = (replyToMessageId) => {
-		let de = datas.find((d) => d.id === replyToMessageId) ?? [];
+	const findReplyDataPoint = (replyToMessageId: string) => {
+		let de = datas.find((d: any) => d.id === replyToMessageId) ?? [];
 		return de;
 	};
 
-	function randomChoice(array) {
+	function randomChoice(array: Array<any>) {
 		const randomIndex = Math.floor(Math.random() * array.length);
 		return array[randomIndex];
 	}
-	let palette;
+
 	const rerollColors = () => {
 		palette = randomChoice(data.colors);
 		if (datas) {
@@ -90,46 +111,140 @@
 				tries = 0;
 			}
 		}
+		preprocessRenderProperties(datas);
+		displayedData = updateRenderProperties(displayedData);
 	};
-	let opa = 30;
 
-	const renderCanvas = (ndata) => {
-		if (!ndata) {
-			datas = data['jsonData'];
-		}
+	let hoveredDatapoint: any;
+	let hoveredDatapointIndex: number;
 
-		// Preprocess //
+	/** PreProcess tool  */
+	const preprocessData = (data: any) => {
+		console.time('Preprocessing');
+		console.log('To Process', data[0]);
+
+		// Filter out any data points that don't have a 'from' field
+		data = data.filter((obj: any) => 'from' in obj);
 
 		// Parse the date strings into JavaScript Date objects
-		datas = datas.filter((obj) => 'from' in obj);
-
-		datas.forEach((d) => {
-			d.date = new Date(d.date);
-		});
-
+		data.forEach((d: any) => (d.date = new Date(d.date)));
 		// Sort the data by the 'date' field in ascending order
-		datas.sort(function (a, b) {
-			return a.date - b.date;
-		});
-
+		data.sort((a: any, b: any) => a.date - b.date);
+		// Compute time delta from each document to the previous one
 		// Compute the time delta for each document in milliseconds
-		datas.forEach(function (d, i) {
+		data.forEach(function (d: any, i: any) {
 			if (i === 0) {
 				d.timeDelta = 0; // Set the first document's time delta to 0
 			} else {
-				d.timeDelta = d.date.getTime() - datas[i - 1].date.getTime();
+				d.timeDelta = d.date.getTime() - data[i - 1].date.getTime();
+			}
+		});
+		// Normalize the time delta values
+		data.forEach(function (d: any, i: any) {
+			if (d.timeDelta <= 0) {
+				d.timeDelta = 1000;
+			}
+			if (d.timeDelta > ghostDuration) {
+				d.timeDelta = ghostDuration;
+				d.ghost = true;
 			}
 		});
 
-		// Adjust zero or negative time deltas to a minimum value
-		datas.forEach(function (d) {
-			if (d.timeDelta <= 0) {
-				d.timeDelta = 1;
+		console.log('Processed', data[0]);
+
+		console.timeEnd('Preprocessing');
+		return data;
+	};
+
+	/** RenderProperties tool  */
+	const preprocessRenderProperties = (data: any) => {
+		console.time('preprocessRenderProperties');
+		console.log('To Process Render of ', data[0]);
+
+		// Precalculates the positions of the data points
+		datas.forEach((d: any, i: number) => {
+			d.cx = d.from == p1n ? xAccessorScaled(d, i) : xAccessorScaled(d, i);
+			d.cy = yAccessorScaled(d, i);
+			d.f = !d.text ? '#5e548e' : d.from == p1n ? p1c : p2c;
+			d.r = !d.text ? 2 : rAccessorScaled(d, i);
+			// If the data point is a reply, calculate the line path
+			if (d.reply_to_message_id) {
+				const replyData = findReplyDataPoint(d.reply_to_message_id);
+				d.m = `M ${xAccessorScaled(d, i)},${yAccessorScaled(d, i)} L ${xAccessorScaled(
+					replyData
+				)},${yAccessorScaled(replyData)}`;
+				d.s = d.from == p1n ? p1c : p2c;
 			}
-			if (d.timeDelta > 100000000) {
-				d.timeDelta = 100000000;
-			}
+			d.o = !d.text ? opa / 50 : opa / 100;
 		});
+
+		console.log('Added render properties ', data[0]);
+		console.timeEnd('preprocessRenderProperties');
+		return data;
+	};
+
+	const updateRenderProperties = (data: any) => {
+		// TODO: make this only update the ones that are relevant
+		console.time('updateRenderProperties');
+		console.log('To Process Render of ', data.length + ' data points');
+
+		// Precalculates the positions of the data points
+		data.forEach((d: any, i: number) => {
+			d.cx = d.from == p1n ? xAccessorScaled(d, i) : xAccessorScaled(d, i);
+			d.cy = yAccessorScaled(d, i);
+			d.f = !d.text ? '#5e548e' : d.from == p1n ? p1c : p2c;
+			d.r = !d.text ? 2 : rAccessorScaled(d, i);
+			// If the data point is a reply, calculate the line path
+			if (d.reply_to_message_id) {
+				const replyData = findReplyDataPoint(d.reply_to_message_id);
+				d.m = `M ${xAccessorScaled(d, i)},${yAccessorScaled(d, i)} L ${xAccessorScaled(
+					replyData
+				)},${yAccessorScaled(replyData)}`;
+				d.s = d.from == p1n ? p1c : p2c;
+			}
+			d.o = !d.text ? opa / 50 : opa / 100;
+		});
+
+		console.timeEnd('updateRenderProperties');
+		return data;
+	};
+
+	let xAccessor = (d: { date: string }) => {
+		return new Date(d.date).getTime();
+	};
+	let yAccessor = (d: any) => d.from;
+	let rAccessor = (d: any) => d.timeDelta;
+
+	let xAccessorScaled = (d: any, i: number = 0) => xScale(xAccessor(d));
+	let yAccessorScaled = (d: any, i: number = 0) =>
+		yScale(yAccessor(d)) + yScale.bandwidth() / 2 - random.value() * 200 + 100;
+
+	let rAccessorScaled = (d: any, i: any) => rScale(rAccessor(d));
+
+	const renderCanvas = (newData: any[] | null = null) => {
+		// Use default data if no data is provided
+		if (!newData) {
+			datas = data['jsonData'];
+			console.log('Rendering Default Canvas', datas[0]);
+		} else {
+			console.log('Rendering Canvas', newData[0]);
+			datas = newData;
+		}
+
+		// Preprocess //
+		datas = preprocessData(datas);
+
+		// Domains  //
+
+		const Xdomain = d3.extent(datas, (d: any) => new Date(d.date).getTime()) as [number, number];
+
+		const Ydomain = datas.map((d: any) => d.from);
+
+		const Rdomain = d3
+			.extent(datas, (d: any) => d.timeDelta)
+			.filter((d: any) => d > 0) as unknown as [number, number];
+
+		console.log('Domains', Xdomain, Ydomain, Rdomain);
 
 		// SCALES //
 
@@ -138,7 +253,7 @@
 		// depends on the date value of the datapoints
 		xScale = d3
 			.scaleLinear()
-			.domain(d3.extent(datas, (d) => new Date(d.date).getTime()))
+			.domain(Xdomain)
 			.nice()
 			.range([margins.left, clw - margins.right]);
 
@@ -146,24 +261,21 @@
 		// the client height - margin bottom to the margin top
 		yScale = d3
 			.scaleBand()
-			.domain(datas.map((d) => d.from).reverse())
+			.domain(Ydomain)
 			.range([clh - margins.bottom, margins.top]);
 
 		// Create a radius scale that ranges from 10 to 1 that
 		// depends on the highest and lowest time deltas
-		rScale = d3
-			.scaleLog()
-			.domain(d3.extent(datas.map((d) => d.timeDelta)).filter((d) => d > 0))
-			.range([10, 1]);
+		rScale = d3.scaleLog().domain(Rdomain).range([10, 1]);
 
 		lineGenerator = d3
 			.line()
 			.curve(d3.curveCardinal.tension(0.5))
 			.x(function (d) {
-				return d.x;
+				return d[0];
 			})
 			.y(function (d) {
-				return d.y;
+				return d[1];
 			});
 
 		// Format ticks
@@ -175,29 +287,17 @@
 			yTicks = yScale.domain();
 		}
 		calculateTallies();
+
+		// Preprocess Render Properties
+		datas = preprocessRenderProperties(datas);
+
+		chunkedUpdater();
 	};
-	$: {
-		// Format ticks
-		formatTick = d3.tickFormat(xScale);
 
-		// Compute x and y axis ticks
-		if (xScale && yScale) {
-			xTicks = xScale.ticks();
-			yTicks = yScale.domain();
-		}
-	}
+	// FIXME: Causes double svg rendering
+	// let debounced = debounce(renderCanvas, 500);
+	// $: if (winW || winH) debounced();
 
-	let debounced = debounce(renderCanvas, 500);
-	$: if (winW || winH) debounced();
-
-	const formatTimedelta = (td) => {
-		td = Math.floor(td / 1000); // Convert milliseconds to seconds
-		const hours = Math.floor(td / 3600);
-		const minutes = Math.floor((td % 3600) / 60);
-		const seconds = Math.floor(td % 60);
-
-		return `${hours} hr, ${minutes} m, ${seconds} s`;
-	};
 	let wttm: Boolean;
 
 	let calculateTallies = () => {
@@ -208,10 +308,14 @@
 			const timedelta = parseInt(datas[i].timeDelta);
 			const meme = datas[i].text == '';
 			const isSticker = !!datas[i].sticker_emoji;
-
+			const reply = !!datas[i].reply_to_message_id;
+			const replyToSelf = datas[i].from === findReplyDataPoint(datas[i].reply_to_message_id).from;
 			if (tally.hasOwnProperty(from)) {
 				tally[from].count++;
-				tally[from].sum += timedelta;
+				if (reply && !replyToSelf) {
+					// Replying to ones own message shouldnt be counted as a reply
+					tally[from].sum += timedelta;
+				}
 				if (meme) {
 					tally[from].memecount += 1;
 				}
@@ -244,6 +348,7 @@
 				tally[key].meanText = formattedTimedelta;
 			}
 		}
+
 		for (const key in tally) {
 			if (tally.hasOwnProperty(key)) {
 				const meanTimedelta = Math.floor(tally[key].mostThirstyReplyTime);
@@ -256,96 +361,43 @@
 		return tally;
 	};
 
-	let loadStagedData = () => {
-		datas = stagedData;
-		stagedData = undefined;
-		textAreaInput = '';
-		parsedTextAreaInput = null;
-		ptaivAsTelegramExport = false;
-		rerollColors();
-		renderCanvas(datas);
-		rerollColors();
-	};
+	const chunkedUpdater = () => {
+		displayedData = [];
+		let currentIndex = 0;
+		const chunkSize = 200;
 
-	let xAccessor = (d) => new Date(d.date).getTime();
-	let yAccessor = (d) => d.from;
-	let rAccessor = (d) => d.timeDelta;
+		// Chunk the data
+		let chunks = chunkArray(datas, chunkSize);
 
-	let xAccessorScaled = (d) => xScale(xAccessor(d)) + random.value();
-	let yAccessorScaled = (d) =>
-		yScale(yAccessor(d)) + yScale.bandwidth() / 2 - random.value() * 200 + 100;
-	let rAccessorScaled = (d) => rScale(rAccessor(d));
+		renderNextChunk();
+		// Function to render the next chunk
+		function renderNextChunk() {
+			if (currentIndex < chunks.length) {
+				displayedData = [...displayedData, ...chunks[currentIndex]];
+				// Remove duplicates
+				// FIXME: inefficient
+				// displayedData = displayedData.filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i);
 
-	let keyAccessor = (_, i) => i;
-	let stagedData;
-
-	const handleFileChange = (event) => {
-		let files = event.target.files;
-
-		for (let f of files) {
-			let reader = new FileReader();
-
-			reader.onload = function (e) {
-				let jsonText = e.target.result;
-				try {
-					parsedTextAreaInput = JSON.parse(jsonText);
-					if (parsedTextAreaInput.type == 'personal_chat' && parsedTextAreaInput.messages.length) {
-						ptaivAsTelegramExport = true;
-						stagedData = parsedTextAreaInput.messages;
-					} else {
-						parsedTextAreaInput = 'invalidExport';
-						stagedData = undefined;
-						event.target.value = null;
-					}
-				} catch (error) {
-					parsedTextAreaInput = 'invalid';
-					event.target.value = null;
-					stagedData = undefined;
-				}
-			};
-
-			reader.readAsText(f);
+				currentIndex++;
+				return requestAnimationFrame(renderNextChunk);
+			}
 		}
 	};
+
+	$: {
+		// Format ticks
+		formatTick = d3.tickFormat(xScale);
+
+		// Compute x and y axis ticks
+		if (xScale && yScale) {
+			xTicks = xScale.ticks();
+			yTicks = yScale.domain();
+		}
+	}
 
 	onMount(() => {
 		renderCanvas();
-		try {
-			fetch('https://loglib.io/api/v1/visitor', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					apiKey: 'site_kqelualctk',
-					orderBy: {
-						createdAt: 'desc'
-					},
-					where: {},
-					include: {
-						pageview: true,
-						event: true,
-						session: true
-					}
-				})
-			})
-				.then((response) => {
-					return response.json();
-				})
-				.then((data) => {
-					// Process the response data here
-					console.log(data);
-				})
-				.catch((error) => {
-					// Handle any errors that occur during the request
-					console.error(error);
-				});
-		} catch (error) {
-			console.log('error', error);
-		}
 	});
-	let winH;
-	let winW;
 </script>
 
 <svelte:window bind:innerWidth={winW} bind:innerHeight={winH} />
@@ -360,10 +412,45 @@
 		bind:clientHeight={clh}
 		class="sticky top-0 left-0 h-[100vh] bg-white w-[60%] justify-center items-center flex flex-wrap"
 	>
+		<div class="absolute transition-all duration-700 max-w-screen-lg">
+			<div
+				in:scale|global={{ duration: 300, opacity: 0.9, start: 0.9 }}
+				class="bg-stone-100 p-4 rounded-xl flex flex-col gap-3"
+				style="border-top: 2px solid {p1c}; border-right: 2px solid  {p2c}; border-bottom: 2px solid  {p1c}; border-left: 2px solid  {p2c};"
+			>
+				{#key hoveredDatapoint}
+					{#if hoveredDatapoint}
+						<h6 class="capitalize">
+							{hoveredDatapoint.type} , #{hoveredDatapointIndex}
+						</h6>
+						<p class="text-xs font-semibold">
+							<span>{hoveredDatapoint.from}</span>
+							<span class=" font-light">
+								{hoveredDatapoint.text}
+							</span>
+						</p>
+						<span>
+							<p class="text-xs font-light">
+								{new Date(hoveredDatapoint.date).toLocaleString('default', {
+									day: '2-digit',
+									month: 'short',
+									year: '2-digit'
+								})}
+							</p>
+							<p class=" text-xs font-light">
+								Replied in
+								{prettyMilliseconds(hoveredDatapoint.timeDelta)}
+							</p>
+						</span>
+					{/if}
+				{/key}
+			</div>
+		</div>
+
 		<svg
 			width={clw}
 			height={clh}
-			viewBox={[0, 0, clw, clh]}
+			viewBox={`${[0, 0, clw, clh]}`}
 			style="width: 100%; height: auto; font: 10px sans-serif;"
 		>
 			<!-- X-axis -->
@@ -394,30 +481,17 @@
 				</g>
 			{/if}
 
-			{#if xScale && yScale}
+			{#if xScale && yScale && xTicks && yTicks}
 				<!-- Data points -->
-				{#each datas as d, i (keyAccessor(d) || i)}
-					<circle
-						cx={d.from == p1n ? xAccessorScaled(d, i) : xAccessorScaled(d, i)}
-						cy={yAccessorScaled(d, i)}
-						r={!d.text ? 2 : rAccessorScaled(d, i)}
-						opacity={!d.text ? opa / 50 : opa / 100}
-						fill={!d.text ? '#5e548e' : d.from == p1n ? p1c : p2c}
+
+				{#each displayedData as d, i (d.id)}
+					<DataPoint
+						bind:d
+						on:mouseover={() => {
+							hoveredDatapoint = d;
+							hoveredDatapointIndex = i;
+						}}
 					/>
-					{#if d.reply_to_message_id}
-						{#each [findReplyDataPoint(d.reply_to_message_id)] as replyData}
-							<path
-								d={`M ${xAccessorScaled(d, i)},${yAccessorScaled(d, i)} L ${xAccessorScaled(
-									replyData
-								)},${yAccessorScaled(replyData)}`}
-								fill="none"
-								opacity={opa / 100}
-								stroke-linecap="round"
-								stroke-width={2}
-								stroke={d.from == p1n ? p1c : p2c}
-							/>
-						{/each}
-					{/if}
 				{/each}
 			{/if}
 		</svg>
@@ -433,6 +507,7 @@
 			<div class="h-[80vh] p-10 mt-24 flex place-items-center justify-center">
 				<div class="rounded-md">
 					<Title />
+
 					{#if yScale}
 						<div class="text-md font-semibold text-stone-500 flex flex-col">
 							<div class="flex flex-row gap-2 items-baseline justify-start">
@@ -561,36 +636,20 @@
 							>The Size of the circle corresponds to <b>speed of reply.</b> ( with delays larger than
 							3 days considered in the same light )
 						</span>
-						<span class="bg-base-300 p-3 rounded-md mt-2">
-							<span class="font-semibold block"> Want to load your own data ? </span>
-							Export any telegram direct message as a json and select the results.json file.
 
-							<div class="flex flex-row justify-around items-center align-baseline mt-2 gap-2">
-								<input
-									type="file"
-									accept=".json"
-									id="recipients_file"
-									on:change={handleFileChange}
-									style="input"
-									class="text-stone-800 bg-stone-200 file-input file-input-sm rounded-md input-primary {stagedData
-										? 'file-input-success'
-										: ''} file-input-bordered"
-								/>
-								<button
-									on:click={loadStagedData}
-									class="
-								btn btn-sm text-sm
-							{stagedData == undefined ? 'btn-disabled btn-outline' : 'btn-success'}
-							{ptaivAsTelegramExport ? 'btn-success' : 'btn-disabled btn-outline'}
-							"
-								>
-									Load {stagedData ? stagedData.length + ' items' : 'Data'}
-								</button>
-							</div>
+						<span class="py-3">
+							<FileLoader
+								bind:stagedData
+								on:load={() => {
+									if (stagedData) {
+										renderCanvas([...stagedData]);
+									}
+								}}
+							/>
 						</span>
+
 						<span class="bg-base-300 p-3 rounded-md mt-2">
 							<span class="font-semibold block"> Customize the chart </span>
-
 							<div class="flex flex-col justify-center items-center gap-4 p-4">
 								<ColorRandomizer {p1c} {p2c} {rerollColors} />
 								<OpacitySlider bind:opa />
@@ -599,86 +658,7 @@
 					</p>
 				</div>
 			</div>
-			<div class="h-[100vh] p-10 flex place-items-center justify-center mt-24">
-				<div class=" text-stone-800 rounded-xl">
-					<!-- svelte-ignore a11y-click-events-have-key-events -->
-					<button on:click={() => (debug = !debug)} class="text-2xl font-black text-stone-800 mb-8">
-						New site , Who this ?
-					</button>
-					<hr />
-					<div class="join join-vertical w-full">
-						<div class="collapse collapse-arrow join-item border border-base-300">
-							<input type="radio" name="my-accordion-4" checked="checked" />
-							<div class="collapse-title text-xl font-medium">
-								Who are you & why did you do this ?
-							</div>
-							<div class="collapse-content">
-								Hi im robi , you can find my other works at <a class="link" href="https://robi.work"
-									>robi.work</a
-								>
-								<small class="mb-4 block">as for why : </small>
-
-								<img
-									src="https://i.imgur.com/z435fsM.png"
-									class="aspect-auto mx-auto"
-									width="200"
-									alt=""
-								/>
-							</div>
-						</div>
-						<div class="collapse collapse-arrow join-item border border-base-300">
-							<input type="radio" name="my-accordion-4" />
-							<div class="collapse-title text-xl font-medium">I wanna throw some 💵 at you.</div>
-							<div class="collapse-content">
-								<div class="flex flex-col justify-center items-center">
-									<img
-										src="https://i.imgur.com/iXmEPQb.png"
-										width="300"
-										height="300"
-										alt="telebirr"
-									/>
-									<a href="https://ko-fi.com/K3K74LSLU" target="_blank"
-										><img
-											height="36"
-											style="border:0px;height:36px;"
-											src="https://storage.ko-fi.com/cdn/kofi2.png?v=3"
-											border="0"
-											alt="Buy Me a Coffee at ko-fi.com"
-										/></a
-									>
-									<p class="text-center my-3">Thanks , yeet it to telebirr / ko-fi.</p>
-								</div>
-							</div>
-						</div>
-						<div class="collapse collapse-arrow join-item border border-base-300">
-							<input type="radio" name="my-accordion-4" />
-							<div class="collapse-title text-xl font-medium">But what about my data and stuff</div>
-							<div class="collapse-content">
-								Idk 🤷‍♂️ use it offline or sth , you can contact me to check out the code.
-							</div>
-						</div>
-						<div class="collapse collapse-arrow join-item border border-base-300">
-							<input type="radio" name="my-accordion-4" />
-							<div class="collapse-title text-xl font-medium">How do i load data ?</div>
-							<div class="collapse-content">
-								<div class="flex flex-row justify-center">
-									<img width="300" src="https://i.imgur.com/mqKl1X8.png" alt="" />
-									<img width="200" src="https://i.imgur.com/9fglCwd.png" class="inline" alt="" />
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
+			<div class="h-[100vh] p-10 flex place-items-center justify-center mt-24"></div>
 		</Scrolly>
 	</div>
 {/if}
-
-<style>
-	circle {
-		transition-property: all;
-		transition-duration: 0.9s;
-		transition-timing-function: ease;
-		transition-property: color none;
-	}
-</style>

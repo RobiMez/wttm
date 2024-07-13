@@ -16,3 +16,11 @@ export const doAPIPost = async (route, body, logResp = false) => {
 	}
 	return responseJson;
 };
+
+
+export const chunkArray = (array: Array<any>, size: number) => {
+	if (!array) return [];
+	return Array.from({ length: Math.ceil(array.length / size) }, (v, i) =>
+		array.slice(i * size, i * size + size)
+	);
+};

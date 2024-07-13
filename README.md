@@ -7,3 +7,4 @@
 - fullscreen chart option
 - Chunked rendering , update n points at a time
 - Ghosted count
+- Who started the chat and with what message
